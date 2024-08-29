@@ -23,3 +23,6 @@ jobs:
 
     - name: Build
       run: go build -v cmd/main/main.go
+    
+    - name: Deploy
+      run: cat "todo deploy"
