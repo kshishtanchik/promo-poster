@@ -25,4 +25,4 @@ jobs:
       run: go build -v cmd/main/main.go
     
     - name: Deploy
-      run: cat "todo deploy"
+      run: echo "todo deploy"
