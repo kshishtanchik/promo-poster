@@ -15,7 +15,7 @@ jobs:
  
     runs-on: ubuntu-latest
     env:
-      HOST: root@${{secret.PROMO_POSTER_IP}}
+      HOST: root@${{secrets.PROMO_POSTER_IP}}
       DEPLOY_DIRECTORY: /root/apps/propmo-poster  
     steps:
     - uses: actions/checkout@v4
