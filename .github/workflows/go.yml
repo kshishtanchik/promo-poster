@@ -29,7 +29,8 @@ jobs:
         go build -o promo-poster ./main.go
     - name: Deploy to VM
       run: |
-          sudo apt-get install -y ssh rsync
+          sudo apt-get install -y ssh 
+          sudo apt-get install -y rsync
           echo "$DEPLOY_SSH_KEY" > deploy_key.pem
           chmod 600 deploy_key.pem
           ssh -i deploy_key.pem -o StrictHostKeyChecking=no ${{ env.HOST }} "mkdir -p ${{ env.DEPLOY_DIRECTORY }}"
