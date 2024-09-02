@@ -42,7 +42,7 @@ jobs:
         ssh -i deploy_key.pem -o StrictHostKeyChecking=no ${{ env.HOST }} "rm -f /etc/systemd/system/promo-poster"
     - name: List workspace contents
       run: |
-          echo "Listing deployment folder contents:"
+          echo "Listing deployment folder (${{ github.workspace }}/deployment) contents:"
           ls -la ${{ github.workspace }}/deployment
     - name: Copy systemd service file
       run: |
