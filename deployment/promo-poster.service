@@ -9,7 +9,6 @@ ExecStart=/root/apps/promo-poster/promo-poster
 Restart=always
 RestartSec=4
 StandardOutput=inherit
-EnvironmentFile=/root/apps/promo-poster/config.env
 
 [Install]
 WantedBy=multi-user.target
