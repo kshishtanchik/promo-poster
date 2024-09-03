@@ -4,12 +4,12 @@ After=network.target
 
 [Service]
 User=root
-WorkingDirectory=/root/apps/propmo-poster
-ExecStart=/root/apps/propmo-poster/propmo-poster
+WorkingDirectory=/root/apps/promo-poster
+ExecStart=/root/apps/promo-poster/promo-poster
 Restart=always
 RestartSec=4
 StandardOutput=inherit
-EnvironmentFile=/root/apps/propmo-poster/config.env
+EnvironmentFile=/root/apps/promo-poster/config.env
 
 [Install]
 WantedBy=multi-user.target
