@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       HOST: root@${{secrets.PROMO_POSTER_IP}}
-      DEPLOY_DIRECTORY: /root/apps/propmo-poster  
+      DEPLOY_DIRECTORY: /root/apps/promo-poster  
     steps:
     - uses: actions/checkout@v4
     - name: Set up Go
