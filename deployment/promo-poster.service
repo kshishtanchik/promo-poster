@@ -1,0 +1,15 @@
+[Unit]
+Description=Promo poster
+After=network.target
+
+[Service]
+User=root
+WorkingDirectory=/root/apps/propmo-poster
+ExecStart=/root/apps/propmo-poster/propmo-poster
+Restart=always
+RestartSec=4
+StandardOutput=inherit
+EnvironmentFile=/root/apps/propmo-poster/config.env
+
+[Install]
+WantedBy=multi-user.target
