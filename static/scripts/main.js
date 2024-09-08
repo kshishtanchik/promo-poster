@@ -6,7 +6,7 @@ function register(event) {
   fetch("event", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(registerData), // Ваши данные для отправки
+    body: JSON.stringify(registerData), 
   })
     .then((res) => res.json())
     .then((data) => console.log("Успешно:", data))
