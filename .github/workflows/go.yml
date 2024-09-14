@@ -51,7 +51,7 @@ jobs:
           touch ${{ env.ENV_FILE_PATH }} && \
           chmod 600 ${{ env.ENV_FILE_PATH }} && \
           echo 'BOT_TOKEN=${{ secrets.BOT_TOKEN }}' > ${{ env.ENV_FILE_PATH }} && \
-          echo 'BASE_SERVER_URL=${{ secrets.PROMO_POSTER_IP }}' >> ${{ env.ENV_FILE_PATH }}"
+          echo 'BASE_SERVER_URL=${{ secrets.PROMO_POSTER_IP }}' >> ${{ env.ENV_FILE_PATH }} && \
           echo 'PORT=${{ env.SERVICE_PORT }}' >> ${{ env.ENV_FILE_PATH }}"
 
     - name: Copy systemd service file
