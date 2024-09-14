@@ -63,12 +63,12 @@ type Event struct {
 }
 
 type NewEvent struct {
-	Title         string `yaml:"Title"`
+	Title         string `yaml:"Title,omitempty"`
 	Description   string `yaml:"Description,omitempty"`
-	EventDate     string `yaml:"EventDate"`
-	Address       string `yaml:"Period"`
-	Period        string `yaml:"Address"`
-	EventTypeName string `yaml:"EventTypeName"`
+	EventDate     string `yaml:"EventDate,omitempty"`
+	Address       string `yaml:"Address,omitempty"`
+	Period        string `yaml:"Period,omitempty"`
+	EventTypeName string `yaml:"EventTypeName,omitempty"`
 	ChatId        string `yaml:"ChatId"`
 }
 
@@ -202,11 +202,11 @@ func main() {
 		}
 	})
 
-	fmt.Println("Server is listening...")
 	PORT := os.Getenv("PORT")
 	if PORT == "" {
 		PORT = "8181"
 	}
+	fmt.Printf("Server is listening port: %s...", PORT)
 	http.ListenAndServe(":"+PORT, nil)
 
 }
@@ -345,8 +345,10 @@ func newEventHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	//todo: брать из настроек
 	BASE_SERVER_URL := os.Getenv("BASE_SERVER_URL")
 	PORT := os.Getenv("PORT")
-	if PORT == "" && BASE_SERVER_URL == "" {
+	if PORT == "" {
 		PORT = "8181"
+	}
+	if BASE_SERVER_URL == "" {
 		BASE_SERVER_URL = "localhost"
 	}
 	link := fmt.Sprintf(
@@ -361,6 +363,7 @@ func newEventHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 		link,
 		bot.EscapeMarkdown("[Участники]"),
 	)
+	fmt.Println(msg)
 	f := inline.New(b, inline.NoDeleteAfterClick())
 	b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID:      update.Message.Chat.ID,
