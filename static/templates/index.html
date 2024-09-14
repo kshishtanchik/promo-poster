@@ -178,9 +178,11 @@ og:image:height — то же самое, но для высоты.
               </div>
               <div class="modal-footer">
                 <input type="text" name="chatId" hidden="true" value="{{ .ChatId }}"  />
+                <input type="text" name="messageId" hidden="true" value="{{ .MessageId }}"  />
                 <button
                   type="button"
                   class="btn btn-primary"
+                  data-bs-dismiss="modal"
                   onclick="register()"
                 >
                   Записаться

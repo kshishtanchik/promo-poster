@@ -16,7 +16,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       HOST: root@${{secrets.PROMO_POSTER_IP}}
-      DEPLOY_DIRECTORY: /root/apps/promo-poster  
+      DEPLOY_DIRECTORY: /root/apps/promo-poster
+      ENV_FILE_PATH: /root/apps/promo-poster/config.env
     steps:
     - uses: actions/checkout@v4
     - name: Set up Go
@@ -44,6 +45,15 @@ jobs:
       run: |
           echo "Listing deployment folder (${{ github.workspace }}) contents:"
           ls -la ${{ github.workspace }}/deployment
+    - name: Create environment file on server
+      run: |
+          ssh -i deploy_key.pem -o StrictHostKeyChecking=no ${{ env.HOST }} "\
+          touch ${{ env.ENV_FILE_PATH }} && \
+          chmod 600 ${{ env.ENV_FILE_PATH }} && \
+          echo 'BOT_TOKEN=${{ secret.BOT_TOKEN }}' > ${{ env.ENV_FILE_PATH }} && \
+          echo 'BASE_SERVER_URL=${{ secrets.AUTH_PASS }}' >> ${{ env.ENV_FILE_PATH }}"
+          echo 'PORT=${{ env.SERVICE_PORT }}' >> ${{ env.ENV_FILE_PATH }}"
+
     - name: Copy systemd service file
       run: |
           scp -i deploy_key.pem -o StrictHostKeyChecking=no ${{ github.workspace }}/deployment/promo-poster.service ${{ env.HOST }}:/tmp/promo-poster.service
