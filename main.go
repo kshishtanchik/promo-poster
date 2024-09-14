@@ -86,8 +86,11 @@ func main() {
 	opts := []bot.Option{
 		bot.WithDefaultHandler(handler),
 	}
-	os.Hostname()
 	BOT_TOKEN := os.Getenv("BOT_TOKEN")
+	if BOT_TOKEN == "" {
+		panic("No bot token!")
+
+	}
 	b, err := bot.New(BOT_TOKEN, opts...)
 	if err != nil {
 		panic(err)
