@@ -1,214 +1,38 @@
-package main
 
-import (
-	"context"
-	"encoding/json"
-	"errors"
-	"fmt"
-	"html/template"
-	"log"
-	"net/http"
-	"net/url"
-	"os"
-	"os/signal"
-	"reflect"
-	"regexp"
-	"strconv"
-	"strings"
+func getEvent(r *http.Request, w http.ResponseWriter) { //, ctx context.Context, b *bot.Bot
+	//todo: изменить подход
+	/*
+		получать идентификатор чата и сообщения
 
-	"github.com/go-telegram/bot"
-	"github.com/go-telegram/bot/models"
-	"github.com/go-telegram/ui/keyboard/inline"
-	"gopkg.in/yaml.v2"
-)
+	*/
+	title := r.URL.Query().Get("title")
+	msg := r.URL.Query().Get("msg")
+	eventTypeName := r.URL.Query().Get("eventTypeName")
+	address := r.URL.Query().Get("address")
+	period := r.URL.Query().Get("period")
+	date := r.URL.Query().Get("date")
+	// по этим двум получим сообщение
+	chatId := r.URL.Query().Get("chatId")
+	messageId := r.URL.Query().Get("messageId")
 
-/*
-const (
-	BASE_SERVER_URL = "localhost:8181" //"http://188.120.235.226:8181"
-)
-*/
-
-// текущие редактируемые сообщения
-// [chatId][msgId][field]
-var dialogRequest = make(map[int64]map[int]string)
-
-type EventMetadata struct {
-	ChatId    string `json:"chatId"`
-	MessageId string `json:"messageId"`
-}
-
-type Student struct {
-	Name          string `json:name`
-	Phone         string `json:phone`
-	TelegramAlias string `json:telegramAlias`
-	EventMetadata
-}
-
-type EventData struct {
-	Title         string `json:"title" description:"Заголовок события" yaml:"Title"`
-	Description   string `json:"description" description:"Краткое описание мероприятия" yaml:"Description,omitempty"`
-	EventDate     string `json:"eventDate" description:"Дата мероприятия" yaml:"EventDate"`
-	EventTypeName string `json:"eventTypeName" description:"Тип мероприятия" yaml:"EventTypeName"`
-	Period        string `json:"period" description:"Период проведения мероприятия в виде 13.00-15.00" yaml:"Period"`
-	Address       string `json:"address" description:"Адресс мероприятия" yaml:"Address"`
-}
-
-type EventViewData struct {
-	EventMetadata
-	EventData
-}
-
-type Event struct {
-	NewEvent `yaml:",newEvent"`
-}
-
-type NewEvent struct {
-	Title         string `yaml:"Title,omitempty"`
-	Description   string `yaml:"Description,omitempty"`
-	EventDate     string `yaml:"EventDate,omitempty"`
-	Address       string `yaml:"Address,omitempty"`
-	Period        string `yaml:"Period,omitempty"`
-	EventTypeName string `yaml:"EventTypeName,omitempty"`
-	ChatId        string `yaml:"ChatId"`
-}
-
-const (
-	FINISH_TAG           = "#Завершено"
-	USER_ERROR           = "Что-то пошло не так.. Уже смотрим что."
-	EVENT_FINISH_MESSAGE = "Регистрация на мероприятие закончена"
-)
-
-func main() {
-
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
-	defer cancel()
-
-	opts := []bot.Option{
-		bot.WithDefaultHandler(handler),
+	event := promomodels.EventData{
+		Title:         title,
+		Description:   msg,
+		EventTypeName: eventTypeName,
+		Address:       address,
+		Period:        period,
+		EventDate:     date,
 	}
-	BOT_TOKEN := os.Getenv("BOT_TOKEN")
-	if BOT_TOKEN == "" {
-		panic("No bot token!")
-
+	eventMetadata := promomodels.EventMetadata{
+		MessageId: messageId,
+		ChatId:    chatId,
 	}
-	b, err := bot.New(BOT_TOKEN, opts...)
-	if err != nil {
-		panic(err)
+	data := promomodels.EventViewData{
+		EventData:     event,
+		EventMetadata: eventMetadata,
 	}
-
-	b.RegisterHandler(bot.HandlerTypeMessageText, "/create", bot.MatchTypeExact, createHandler)
-	b.RegisterHandler(bot.HandlerTypeMessageText, "/template", bot.MatchTypeExact, getTemplate)
-
-	re := regexp.MustCompile(`^newEvent:`)
-
-	b.RegisterHandlerRegexp(bot.HandlerTypeMessageText, re, newEventHandler)
-
-	go b.Start(ctx)
-
-	fs := http.FileServer(http.Dir("static"))
-	http.Handle("/", fs)
-
-	http.HandleFunc("/event", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "GET" {
-			//todo: логировать данные для статистики
-			title := r.URL.Query().Get("title")
-			msg := r.URL.Query().Get("msg")
-			eventTypeName := r.URL.Query().Get("eventTypeName")
-			address := r.URL.Query().Get("address")
-			period := r.URL.Query().Get("period")
-			date := r.URL.Query().Get("date")
-			chatId := r.URL.Query().Get("chatId")
-			messageId := r.URL.Query().Get("messageId")
-
-			event := EventData{
-				Title:         title,
-				Description:   msg,
-				EventTypeName: eventTypeName,
-				Address:       address,
-				Period:        period,
-				EventDate:     date,
-			}
-			eventMetadata := EventMetadata{
-				MessageId: messageId,
-				ChatId:    chatId,
-			}
-			data := EventViewData{
-				EventData:     event,
-				EventMetadata: eventMetadata,
-			}
-			tmpl, _ := template.ParseFiles("static/templates/index.html")
-			tmpl.Execute(w, data)
-		}
-
-		if r.Method == "POST" {
-			//todo: логировать данные для статистики
-			var student Student
-			var unmarshalErr *json.UnmarshalTypeError
-
-			decoder := json.NewDecoder(r.Body)
-			decoder.DisallowUnknownFields()
-			err := decoder.Decode(&student)
-			if err != nil {
-				if errors.As(err, &unmarshalErr) {
-					errorResponse(w, "Bad Request. Wrong Type provided for field "+unmarshalErr.Field, http.StatusBadRequest)
-				} else {
-					errorResponse(w, "Bad Request "+err.Error(), http.StatusBadRequest)
-				}
-				return
-			}
-			messageId, _ := strconv.Atoi(student.MessageId)
-
-			clearPhone := strings.ReplaceAll(student.Phone, " ", "")
-			var alias string
-			if student.TelegramAlias != "" {
-				alias = "@" + student.TelegramAlias + ", "
-			}
-
-			studentString := fmt.Sprintf(` %s, %s %s`, student.Name, alias, clearPhone)
-			newRm := inline.New(b, inline.NoDeleteAfterClick()).
-				Row().
-				Button("Пришел", []byte(studentString), present).
-				Button("Не пришел", []byte(studentString), absent)
-
-			studentData := fmt.Sprintf(`*[%s](https://t.me/%s)*, %s`, student.Name, student.TelegramAlias, bot.EscapeMarkdown(clearPhone))
-
-			msgText := fmt.Sprintf(`Зарегистрирован: %s`, studentData)
-			var registerMessage *models.Message
-			registerMessage, err = b.SendMessage(ctx, &bot.SendMessageParams{
-				ChatID:      student.ChatId,
-				Text:        msgText,
-				ReplyMarkup: newRm,
-				ParseMode:   models.ParseModeMarkdown,
-				ReplyParameters: &models.ReplyParameters{
-					MessageID: messageId,
-					ChatID:    student.ChatId,
-				},
-			})
-
-			if err != nil {
-				fmt.Println(err.Error())
-				errorResponse(w, USER_ERROR, http.StatusBadRequest)
-			}
-
-			if strings.Contains(registerMessage.ReplyToMessage.Text, FINISH_TAG) {
-				b.DeleteMessage(ctx, &bot.DeleteMessageParams{
-					ChatID:    student.ChatId,
-					MessageID: registerMessage.ID,
-				})
-				errorResponse(w, EVENT_FINISH_MESSAGE, http.StatusNotFound)
-			}
-			response := fmt.Sprintf(`{"data":"ok","name": "%s" }`, student.Name)
-			fmt.Fprint(w, response)
-		}
-	})
-
-	PORT := os.Getenv("PORT")
-	if PORT == "" {
-		PORT = "8181"
-	}
-	fmt.Printf("Server is listening port: %s...", PORT)
-	http.ListenAndServe(":"+PORT, nil)
-
+	tmpl, _ := template.ParseFiles("static/templates/index.html")
+	tmpl.Execute(w, data)
 }
 
 func createUserText(eventData any) (resultMsg string) {
@@ -296,7 +120,7 @@ func createTmplate(eventData any) (resultMsg string) {
 }
 
 func getTemplate(ctx context.Context, b *bot.Bot, update *models.Update) {
-	newEvent := EventData{}
+	newEvent := promomodels.EventData{}
 	resultMsg := bot.EscapeMarkdown("Скопируйте выделенный фрагмент. Замените текст полей в кавыйчках и отправте ответным сообщением. Бот выдаст ссылку для регистрации. Разместите ее в соцсетях")
 	template := createTmplate(newEvent)
 
@@ -311,7 +135,7 @@ func getTemplate(ctx context.Context, b *bot.Bot, update *models.Update) {
 }
 
 func createHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
-	newEvent := EventData{}
+	newEvent := promomodels.EventData{}
 	kb, resultMsg := createEditButtons(b, newEvent)
 
 	b.SendMessage(ctx, &bot.SendMessageParams{
@@ -323,7 +147,7 @@ func createHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 
 // формирование ссылки на событие
 func newEventHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
-	event := NewEvent{}
+	event := promomodels.NewEvent{}
 
 	err := yaml.Unmarshal([]byte(update.Message.Text), &event)
 	if err != nil {
@@ -511,4 +335,41 @@ func errorResponse(w http.ResponseWriter, message string, httpStatusCode int) {
 	resp["message"] = message
 	jsonResp, _ := json.Marshal(resp)
 	w.Write(jsonResp)
+}
+
+
+
+type Student struct {
+	Name          string `json:name`
+	Phone         string `json:phone`
+	TelegramAlias string `json:telegramAlias`
+	EventMetadata
+}
+
+type EventData struct {
+	Title         string `json:"title" description:"Заголовок события" yaml:"Title"`
+	Description   string `json:"description" description:"Краткое описание мероприятия" yaml:"Description,omitempty"`
+	EventDate     string `json:"eventDate" description:"Дата мероприятия" yaml:"EventDate"`
+	EventTypeName string `json:"eventTypeName" description:"Тип мероприятия" yaml:"EventTypeName"`
+	Period        string `json:"period" description:"Период проведения мероприятия в виде 13.00-15.00" yaml:"Period"`
+	Address       string `json:"address" description:"Адресс мероприятия" yaml:"Address"`
+}
+
+type EventViewData struct {
+	EventMetadata
+	EventData
+}
+
+type Event struct {
+	NewEvent `yaml:",newEvent"`
+}
+
+type NewEvent struct {
+	Title         string `yaml:"Title,omitempty"`
+	Description   string `yaml:"Description,omitempty"`
+	EventDate     string `yaml:"EventDate,omitempty"`
+	Address       string `yaml:"Address,omitempty"`
+	Period        string `yaml:"Period,omitempty"`
+	EventTypeName string `yaml:"EventTypeName,omitempty"`
+	ChatId        string `yaml:"ChatId"`
 }
